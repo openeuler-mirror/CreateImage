@@ -1,0 +1,205 @@
+#!/usr/bin/bash
+
+set -eE
+# Prevent perl from complaining a lot, but also remove any unexpected side-effects
+# of $LANG varying between build hosts
+export LANG=C
+
+SCRIPTNAME=$(basename $0)
+export SCRIPT_HOME=$(dirname $(readlink -f $0))
+
+if [ -d /usr/share/CreateImage ]; then
+  # we have been installed in /usr
+  export _PREFIX=$SCRIPT_HOME/../share/CreateImage
+else
+  # we have not been installed in any way
+  export _PREFIX=$SCRIPT_HOME/..
+fi
+export _LIB=$_PREFIX/lib
+source $_LIB/die
+
+function show_options () {
+    cat << EOF
+Usage: create-image [OPTION]... [URL]
+
+Options:
+    -h,--help       display this help and exit
+    -v,--version    display version and exit
+    -r              obs repos source for mirroring
+EOF
+}
+
+function show_version() {
+    cat $_PREFIX/version
+    exit 0
+}
+
+# Display the current file/function/line in the debug output
+function _ps4 {
+  IFS=" " called=($(caller 0))
+  local f=$(readlink -f ${called[2]})
+  printf "%-80s " "$f:${called[1]}:${called[0]}"
+}
+export -f _ps4
+export PS4='+ $(_ps4):   '
+
+source $_LIB/common-functions
+source $_LIB/img-functions
+
+REPOFILE="/tmp/_HMI_repos"
+ISO=
+REPODIR=
+NAME=system.img
+ROOT_PWD='''$6$o4rTi3d/.hh6JUYC$ClnCxd2mAQHlt0UloC4ystQg0CiuSVyhXz0sP1mDCNCgWV0rBwegwJ/bCWfjN4WxbahDa7F9U3c6/vFaNgsvX/'''
+PKGS_LIST="$_PREFIX/config/rpmlist"
+
+ARCH=`arch`
+
+[ -f $REPOFILE ] && rm -rf $REPOFILE
+
+if [ "$#" -eq 1 ];then
+    case $1 in
+    -h|--help)
+       show_options
+       exit 0;;
+    -v|--version)
+       show_version;;
+    *)
+       echo "error: params is invalid,please check it."
+       show_options
+       exit 1;;
+    esac
+elif [ "$#" -gt 1 ];then 
+    while getopts ":s::r::d::n:p:l:" opt
+    do
+        case $opt in
+        s)
+          ISO="$OPTARG";;
+        d)
+     	  REPODIR="$OPTARG";;
+  	r)
+    	  echo "$OPTARG" >> $REPOFILE;;
+  	n)
+          NAME="$OPTARG".img;;
+        p)
+          ROOT_PWD="$OPTARG";;
+        l)
+          PKGS_LIST="$OPTARG";;
+	*)
+    	  echo "error: params is invalid,please check it."
+    	  show_options
+          exit 1;;
+        esac
+    done
+    set +eE
+    echo "$@" | grep "^-[srdnpl] "
+    if [ "$?" -ne 0 ];then
+        echo "error: params is invalid,please check it."
+        show_options
+        exit 1
+    fi
+    set -eE
+else
+    echo "warning: params is none,please reference help information."
+    show_options
+    exit 0
+fi
+
+[ ! -f $ISO ] && [ ! -f $REPOFILE] && show_options && exit 1
+
+export ISO
+export REPOFILE
+export NAME
+export ROOT_PWD
+export PKGS_LIST
+export ARCH
+export REPODIR
+
+mk_build_dir
+
+create_base
+
+run_d_in_target pre-install
+
+run_d_in_target install
+
+run_d_in_target post_install
+
+# ensure we do not have a lost+found directory in the root folder
+# that could cause copy to fail (it will be created again later
+# when creating the file system, if it needs such directory)
+if [ -e "$TMP_BUILD_DIR/mnt/lost+found" ]; then
+    sudo rm -rf "$TMP_BUILD_DIR/mnt/lost+found"
+fi
+# Free up /mnt
+unmount_image
+mv $TMP_BUILD_DIR/mnt $TMP_BUILD_DIR/built
+
+# umount mount ISO FILE
+[ "X$ISO" != "X" ] && umount /mnt
+
+IMG_SIZE=40
+
+/usr/bin/qemu-img create system.img ${IMG_SIZE}G
+/usr/sbin/parted system.img -- mklabel msdos
+
+if [ $ARCH == "x86_64" ]; then
+
+    /usr/sbin/parted system.img -- mkpart primary fat16 0% 5%
+    /usr/sbin/parted system.img -- mkpart primary ext4 5% 100%
+
+elif [ $ARCH == "aarch64" ]; then
+
+    /usr/sbin/parted system.img -- mkpart primary fat16 0% 5%
+    /usr/sbin/parted system.img -- mkpart primary ext4 5% 100%
+fi
+
+export DEVICE=`losetup -f`
+/usr/sbin/losetup ${DEVICE} system.img
+
+offset=`fdisk -l system.img | grep "system.img1" | awk '{print $2}'`
+sizelimit=`fdisk -l system.img | grep "system.img1" | awk '{print $3}'`
+sizelimit=`echo "($sizelimit - $offset)*512" | bc`
+offset=`echo "${offset}*512" | bc`
+
+export BOOT=`losetup -f`
+/usr/sbin/losetup -o ${offset} --sizelimit ${sizelimit} ${BOOT} system.img
+/usr/sbin/mkfs.vfat $BOOT
+
+offset=`fdisk -l system.img | grep "system.img2" | awk '{print $2}'`
+sizelimit=`fdisk -l system.img | grep "system.img2" | awk '{print $3}'`
+sizelimit=`echo "($sizelimit - $offset)*512" | bc`
+offset=`echo "${offset}*512" | bc`
+
+export ROOT=`losetup -f`
+export ROOT_FS_UUID=$(uuidgen -r)
+/usr/sbin/losetup -o ${offset} --sizelimit ${sizelimit} ${ROOT} system.img
+/usr/sbin/mkfs.ext4 -L "rootfs" ${ROOT}
+/sbin/tune2fs -U ${ROOT_FS_UUID} ${ROOT}
+
+mkdir -p $TMP_BUILD_DIR/mnt
+mount -t ext4 ${ROOT} ${TMP_MOUNT_PATH}
+rm -rf "${TMP_MOUNT_PATH}/lost+found"
+
+mkdir -p ${TMP_MOUNT_PATH}/boot
+chmod 755 ${TMP_MOUNT_PATH}/boot
+mount -t vfat ${BOOT} ${TMP_MOUNT_PATH}/boot
+export BOOT_UUID=$(blkid -s UUID -o value ${BOOT})
+mv -f ${TMP_BUILD_DIR}/built/boot/* ${TMP_MOUNT_PATH}/boot/ || true
+[ -d ${TMP_BUILD_DIR}/built/boot/ ] && rm -rf ${TMP_BUILD_DIR}/built/boot/
+
+sudo mv -t $TMP_BUILD_DIR/mnt ${TMP_BUILD_DIR}/built/* || true
+
+mount_proc_dev_sys
+run_d_in_target finalise
+finalise_base
+
+fstrim_image
+# Unmount and cleanup the /mnt and /build subdirectories, to save
+# space before converting the image to some other format.
+unmount_image
+cleanup_build_dir
+/usr/sbin/losetup -D
+
+# All done
+trap EXIT
