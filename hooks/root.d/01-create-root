@@ -105,38 +105,6 @@ elif [ $ARCH == "aarch64" ]; then
 fi
 sudo -E chroot $TARGET_ROOT yum -y install grub2-efi grub2-tools kernel
 
-function change_uname()
-{
-    cat << EOF > "${1}"
-#!/bin/sh
-
-OUTPUT=\$(uname.bin \$*)
-NOT_INSTALLED="is not installed"
-
-if [[ \$* == "-r" ]];then
-    dir=\$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel | head -n 1)
-    if [ -z "\$(echo "\${dir}" | grep "\${NOT_INSTALLED}")" ]; then
-        [ -n "\${dir}" ] && echo \${dir} && exit 0
-    fi
-    dir=\$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-devel | head -n 1)
-    if [ -z "\$(echo "\${dir}" | grep "\${NOT_INSTALLED}")" ]; then
-        [ -n "\${dir}" ] && echo \${dir} && exit 0
-    fi
-    dir=\$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-headers | head -n 1)
-    if [ -z "\$(echo "\${dir}" | grep "\${NOT_INSTALLED}")" ]; then
-        [ -n "\${dir}" ] && echo \${dir} && exit 0
-    fi
-    echo "error: you must installed kernel or kernel-headers" && exit 1
-else
-    echo \${OUTPUT}
-fi
-EOF
-}
-
-sudo -E chroot $TARGET_ROOT mv /usr/bin/uname /usr/bin/uname.bin
-change_uname "$TARGET_ROOT/usr/bin/uname"
-sudo -E chroot $TARGET_ROOT chmod +x /usr/bin/uname
-
 if [ "X$PKGS_LIST" != "X" ]
 then
     rpms=`cat $PKGS_LIST | tr "\n" " "`
