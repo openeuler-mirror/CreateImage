@@ -152,6 +152,11 @@ elif [ $ARCH == "aarch64" ]; then
 
     /usr/sbin/parted system.img -- mkpart primary fat16 0% 5%
     /usr/sbin/parted system.img -- mkpart primary ext4 5% 100%
+
+elif [ $ARCH == "loongarch64" ]; then
+
+    /usr/sbin/parted system.img -- mkpart primary fat16 0% 5%
+    /usr/sbin/parted system.img -- mkpart primary ext4 5% 100%
 fi
 
 export DEVICE=`losetup -f`

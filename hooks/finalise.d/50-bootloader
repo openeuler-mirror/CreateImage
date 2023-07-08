@@ -68,6 +68,31 @@ function install_grub2_efi ()
     grub2-mkconfig -o $GRUB_CFG
 }
 
+function install_grub2_loongarch64 ()
+{
+    cp -r /usr/lib/grub/loongarch64-efi /boot/efi/EFI/openEuler/
+    eval "grub2-mkimage -d /usr/lib/grub/loongarch64-efi -O loongarch64-efi --output=/boot/efi/EFI/openEuler/grubloongarch64.efi '--prefix=(,msdos1)/efi/EFI/openEuler' fat part_gpt part_msdos linux"
+
+    mkdir -p /boot/EFI/BOOT/
+    cp -f /boot/efi/EFI/openEuler/grubloongarch64.efi /boot/EFI/BOOT/BOOTLOONGARCH64.EFI
+    cp -f /boot/efi/EFI/openEuler/grubloongarch64.efi /boot/EFI/BOOT/BOOTLOONGARCH.EFI
+
+    echo 'GRUB_TIMEOUT=5' >> /etc/default/grub
+    echo 'GRUB_DEFAULT=saved' >> /etc/default/grub
+    echo 'GRUB_DISABLE_SUBMENU=true' >> /etc/default/grub
+    echo 'GRUB_TERMINAL_OUTPUT="console"' >> /etc/default/grub
+    echo 'GRUB_CMDLINE_LINUX="rootfstype=ext4 nomodeset quiet oops=panic softlockup_panic=1 net.ifnames=0 biosdevname=0 nmi_watchdog=1 rd.shell=0 selinux=0 crashkernel=256M reserve_kbox_mem=16M crash_kexec_post_notifiers panic=3 no-steal-time use-sched-idle-time"' >> /etc/default/grub
+    echo 'GRUB_DISABLE_RECOVERY="true"' >>/etc/default/grub
+
+    echo "cat <<EOF" >> /etc/grub.d/00_header
+    echo "set superusers=\"root\"" >> /etc/grub.d/00_header
+    echo "password_pbkdf2 root grub.pbkdf2.sha512.10000.5A45748D892672FDA02DD3B6F7AE390AC6E6D532A600D4AC477D25C7D087644697D8A0894DFED9D86DC2A27F4E01D925C46417A225FC099C12DBD3D7D49A7425.2BD2F5BF4907DCC389CC5D165DB85CC3E2C94C8F9A30B01DACAA9CD552B731BA1DD3B7CC2C765704D55B8CD962D2AEF19A753CBE9B8464E2B1EB39A3BB4EAB08" >> /etc/grub.d/00_header
+
+    echo "EOF" >> /etc/grub.d/00_header
+    GRUB_CFG=/boot/efi/EFI/openEuler/grub.cfg
+    grub2-mkconfig -o $GRUB_CFG
+}
+
 if [ -f /boot/grub2/device.map ]; then
 cat << EOF | tee /boot/grub2/device.map > /dev/null
 (hd0)   /dev/xvda
@@ -81,5 +106,9 @@ fi
 
 if [ $ARCH == "aarch64" ]; then
     install_grub2_efi
+fi
+
+if [ $ARCH == "loongarch64" ]; then
+    install_grub2_loongarch64
 fi
 
