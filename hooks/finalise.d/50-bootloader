@@ -42,6 +42,9 @@ function install_grub2_x86 ()
     LEGACY_GRUB_CFG=/boot/grub2/grub.cfg
     grub2-mkconfig -o $UEFI_GRUB_CFG
     grub2-mkconfig -o $LEGACY_GRUB_CFG
+    sed_str="root=UUID=${ROOT_FS_UUID} "
+    sed -i "s#root=.*.img #${sed_str}#g" $UEFI_GRUB_CFG
+    sed -i "s#root=.*.img #${sed_str}#g" $LEGACY_GRUB_CFG
 }
 
 function install_grub2_efi ()
@@ -66,6 +69,8 @@ function install_grub2_efi ()
     echo "EOF" >> /etc/grub.d/00_header
     GRUB_CFG=/boot/efi/EFI/openEuler/grub.cfg
     grub2-mkconfig -o $GRUB_CFG
+    sed_str="root=UUID=${ROOT_FS_UUID} "
+    sed -i "s#root=.*.img #${sed_str}#g" $GRUB_CFG
 }
 
 function install_grub2_loongarch64 ()
@@ -91,6 +96,8 @@ function install_grub2_loongarch64 ()
     echo "EOF" >> /etc/grub.d/00_header
     GRUB_CFG=/boot/efi/EFI/openEuler/grub.cfg
     grub2-mkconfig -o $GRUB_CFG
+    sed_str="root=UUID=${ROOT_FS_UUID} "
+    sed -i "s#root=.*.img #${sed_str}#g" $GRUB_CFG
 }
 
 if [ -f /boot/grub2/device.map ]; then
