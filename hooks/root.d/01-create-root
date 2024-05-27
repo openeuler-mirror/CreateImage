@@ -104,6 +104,8 @@ elif [ $ARCH == "aarch64" ]; then
     sudo -E chroot $TARGET_ROOT yum -y install grub2-efi-aa64-modules
 elif [ $ARCH == "loongarch64" ]; then
     sudo -E chroot $TARGET_ROOT yum -y install grub2-efi-loongarch64-modules
+elif [ $ARCH == "riscv64" ]; then
+    sudo -E chroot $TARGET_ROOT yum -y install grub2-efi-riscv64 grub2-efi-riscv64-modules
 fi
 sudo -E chroot $TARGET_ROOT yum -y install grub2-efi grub2-tools kernel
 
