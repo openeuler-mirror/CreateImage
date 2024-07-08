@@ -40,6 +40,7 @@ else
         echo "$repo" >> $repo_config
         echo "enable=1" >> $repo_config
         echo "gpgcheck=0" >> $repo_config
+        echo "priority=${i}" >> $repo_config
         ((i++)) || echo > /dev/null
     done
     rm -rf $REPOFILE
