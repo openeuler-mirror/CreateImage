@@ -112,7 +112,7 @@ function install_grub2_riscv64 ()
     echo 'GRUB_DEFAULT=saved' >> /etc/default/grub
     echo 'GRUB_DISABLE_SUBMENU=true' >> /etc/default/grub
     echo 'GRUB_TERMINAL_OUTPUT="console"' >> /etc/default/grub
-    echo 'GRUB_CMDLINE_LINUX="console=ttyS0 highres=off earlycon no4lvl systemd.default_timeout_start_sec=600 rootfstype=ext4 nomodeset net.ifnames=0 biosdevname=0 nmi_watchdog=1 rd.shell=0 selinux=0 crashkernel=256M reserve_kbox_mem=16M crash_kexec_post_notifiers panic=3 no-steal-time use-sched-idle-time initcall_blacklist=efi_rtc_driver_init"' >> /etc/default/grub
+    echo 'GRUB_CMDLINE_LINUX="console=ttyS0 highres=off earlycon systemd.default_timeout_start_sec=600 rootfstype=ext4 nomodeset net.ifnames=0 biosdevname=0 nmi_watchdog=1 rd.shell=0 crashkernel=256M reserve_kbox_mem=16M crash_kexec_post_notifiers panic=3 no-steal-time use-sched-idle-time initcall_blacklist=efi_rtc_driver_init"' >> /etc/default/grub
     echo 'GRUB_DISABLE_RECOVERY="true"' >>/etc/default/grub
     echo 'GRUB_DISABLE_OS_PROBER="true"' >> /etc/default/grub
     echo "cat <<EOF" >> /etc/grub.d/00_header
