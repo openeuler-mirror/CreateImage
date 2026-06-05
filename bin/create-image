@@ -191,9 +191,16 @@ mkdir -p $TMP_BUILD_DIR/mnt
 mount -t ext4 ${ROOT} ${TMP_MOUNT_PATH}
 rm -rf "${TMP_MOUNT_PATH}/lost+found"
 
-mkdir -p ${TMP_MOUNT_PATH}/boot
-chmod 755 ${TMP_MOUNT_PATH}/boot
-mount -t vfat ${BOOT} ${TMP_MOUNT_PATH}/boot
+if [ $ARCH == "riscv64" ]; then
+    mkdir -p ${TMP_MOUNT_PATH}/boot/efi
+    chmod 755 ${TMP_MOUNT_PATH}/boot/efi
+    mount -t vfat ${BOOT} ${TMP_MOUNT_PATH}/boot/efi
+else
+    mkdir -p ${TMP_MOUNT_PATH}/boot
+    chmod 755 ${TMP_MOUNT_PATH}/boot
+    mount -t vfat ${BOOT} ${TMP_MOUNT_PATH}/boot
+fi
+
 export BOOT_UUID=$(blkid -s UUID -o value ${BOOT})
 mv -f ${TMP_BUILD_DIR}/built/boot/* ${TMP_MOUNT_PATH}/boot/ || true
 [ -d ${TMP_BUILD_DIR}/built/boot/ ] && rm -rf ${TMP_BUILD_DIR}/built/boot/

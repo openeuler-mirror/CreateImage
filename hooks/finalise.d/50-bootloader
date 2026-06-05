@@ -105,8 +105,8 @@ function install_grub2_riscv64 ()
     cp -r /usr/lib/grub/riscv64-efi /boot/efi/EFI/openEuler/
     eval "grub2-mkimage -d /usr/lib/grub/riscv64-efi -O riscv64-efi --output=/boot/efi/EFI/openEuler/grubriscv64.efi '--prefix=(,msdos1)/efi/EFI/openEuler' fat part_gpt part_msdos linux"
 
-    mkdir -p /boot/EFI/BOOT/
-    cp -f /boot/efi/EFI/openEuler/grubriscv64.efi /boot/EFI/BOOT/BOOTRISCV64.EFI
+    mkdir -p /boot/efi/EFI/BOOT/
+    cp -f /boot/efi/EFI/openEuler/grubriscv64.efi /boot/efi/EFI/BOOT/BOOTRISCV64.EFI
 
     echo 'GRUB_TIMEOUT=5' >> /etc/default/grub
     echo 'GRUB_DEFAULT=saved' >> /etc/default/grub

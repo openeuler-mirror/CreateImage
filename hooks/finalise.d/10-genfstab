@@ -11,7 +11,11 @@ function gen_fstab () {
     echo "gen fstab"
     echo "root fs uuid : $ROOT_FS_UUID"
     echo "UUID=$ROOT_FS_UUID    /    ext4    defaults  0 0"  >>  /etc/fstab
-    echo "UUID=${BOOT_UUID} /boot vfat defaults 0 0" >> /etc/fstab
+    if [ $ARCH == "riscv64" ]; then
+        echo "UUID=${BOOT_UUID} /boot/efi vfat defaults 0 0" >> /etc/fstab
+    else
+        echo "UUID=${BOOT_UUID} /boot vfat defaults 0 0" >> /etc/fstab
+    fi
 }
 
 gen_fstab
